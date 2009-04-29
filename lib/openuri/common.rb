@@ -21,12 +21,12 @@ module OpenURI
   alias original_open open #:nodoc:
   def self.open(uri, *rest, &block)
     if Cache.enabled?
-      response = Cache::get(uri.to_s)
+      response = Cache.get(Cache.key_for(uri))
     end
     
     unless response
       response = openuri_original_open(uri, *rest).read
-      Cache::set(uri.to_s, response) if Cache.enabled?
+      Cache.set(Cache.key_for(uri), response) if Cache.enabled?
     end
 
     response = StringIO.new(response)
@@ -43,6 +43,29 @@ module OpenURI
   end
   
   class Cache
+
+    class KeyHash
+      def self.enable!
+        @hash_keys = true
+      end
+      
+      def self.disable!
+        @hash_keys = false
+      end
+
+      def self.enabled?
+        @hash_keys
+      end
+      
+      def self.disabled?
+        !@hash_keys
+      end
+      
+      def self.generate(uri)
+        Digest::MD5.hexdigest(uri)
+      end
+    end
+    
     # Cache is not enabled by default
     @cache_enabled = false
     
@@ -77,6 +100,10 @@ module OpenURI
         raise NotImplementedError
       end
             
+      def key_for(uri)
+        Cache::KeyHash.enabled? ? Cache::KeyHash.generate(uri.to_s) : uri.to_s
+      end      
+      
       # How long your caches will be kept for (in seconds)
       def expiry
         @expiry ||= 60 * 10

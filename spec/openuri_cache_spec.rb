@@ -60,6 +60,27 @@ specs = lambda do
     it "should still be to open and read a file when passed a block" do
       open("./spec/assets/test") { |f| f.read }.should == "I have been read!"
     end
+    
+    describe "when not hashing keys" do
+      it "should raise an exception on long urls" do
+        OpenURI::Cache.enable!
+        OpenURI::Cache.should be_enabled
+        long_url = "http://www.google.com/search?q=123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890"
+        lambda { open(long_url) }.should raise_error
+      end
+    end
+    
+    describe "when hashing keys" do
+      it "should not raise an exception on long urls" do
+        OpenURI::Cache.enable!
+        OpenURI::Cache.should be_enabled
+        OpenURI::Cache::KeyHash.enable!
+        OpenURI::Cache::KeyHash.should be_enabled
+        long_url = "http://www.google.com/search?q=123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890"
+        lambda { open(long_url) }.should_not raise_error
+      end
+    end
+    
   end
 
   describe OpenURI::Cache, "class" do  
@@ -98,8 +119,22 @@ specs = lambda do
       ensure
         OpenURI::Cache.host = default_server
       end
+    end    
+  end
+  
+  describe OpenURI::Cache::KeyHash, "class" do  
+    it "should be able to be enabled" do
+      OpenURI::Cache::KeyHash.enable!
+      OpenURI::Cache::KeyHash.should be_enabled
+    end
+  
+    it "should be able to be disabled" do
+      OpenURI::Cache::KeyHash.enable!
+      OpenURI::Cache::KeyHash.disable!
+      OpenURI::Cache::KeyHash.should be_disabled
     end
   end
+    
 end
 
 require 'logger'
